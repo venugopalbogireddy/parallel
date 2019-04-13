@@ -25,11 +25,10 @@ typedef long long int int64;
 
 int a[N];
 
-int* par_prefix_sum(int a[]) {
-	for (int i=1; i<a.size(); i++) {
-		a[i] = a[i]+a[i-1];
+void par_prefix_sum(int* b, int n) {
+	for (int i=1; i<n; i++) {
+		b[i] = b[i]+b[i-1];
 	}
-	return a;
 }
 
 int par_partition(int q, int r, int x) {
@@ -42,8 +41,8 @@ int par_partition(int q, int r, int x) {
 		lt[i] = b[i]<x ? 1:0;
 		gt[i] = b[i]>x ? 1:0;
 	}
-	lt = par_prefix_sum(lt);
-	gt = par_prefix_sum(gt);
+	par_prefix_sum(lt,n);
+	par_prefix_sum(gt,n);
 	int k=q+lt[n-1];
 	a[k]=x;
 	cilk_for(int i=0; i<n; i++) {
@@ -101,7 +100,7 @@ void quickSort(int low, int high)
 void par_randomized_quicksort(int q, int r) {
 	int n=r-q+1;
 	if (n<=32)
-		quicksort(q, r);
+		quickSort(q, r);
 	else {
 		// select a random number
 		int x = rand() % n + q;
@@ -122,9 +121,13 @@ int main(int argc, char* argv[]) {
 	int n = atoi(argv[1]);
 	for (int i = 0; i < n; ++i)
 	{
-		a[i] = rand();
+		a[i] = rand() % 500;
 	}
-
+	
+	for (int i=0; i<n; i++)
+	{
+		cout<<a[i]<<endl;
+	}
 	// starting the time
 	srand(time(NULL));
     time_t start = time(NULL);
@@ -134,4 +137,8 @@ int main(int argc, char* argv[]) {
     double time_taken = end-start;
 
     printf("Time Taken for Base size %d is %.6lf\n",n,time_taken);
+	for (int i=0; i<n; i++)
+	{
+		cout<<a[i]<<endl;
+	}
 }
