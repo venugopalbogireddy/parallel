@@ -54,12 +54,6 @@ int par_partition(int q, int r, int x) {
 	return k;
 }
 
-void swap(int* a, int* b) 
-{ 
-    int t = *a; 
-    *a = *b; 
-    *b = t; 
-}
 int partition (int low, int high) 
 { 
     int pivot = a[high];    // pivot 
@@ -72,10 +66,14 @@ int partition (int low, int high)
         if (a[j] <= pivot) 
         { 
             i++;    // increment index of smaller element 
-            swap(&a[i], &a[j]); 
+            int t = a[i];
+	    a[i] = a[j];
+	    a[j] = t; 
         } 
-    } 
-    swap(&a[i + 1], &a[high]); 
+    }
+    int t=a[i+1];
+    a[i+1]=a[high];
+    a[high]=t; 
     return (i + 1); 
 }
 /* The main function that implements QuickSort 
@@ -106,7 +104,7 @@ void par_randomized_quicksort(int q, int r) {
 		int x = rand() % n + q;
 		int k = par_partition(q, r, x);
 		cilk_spawn par_randomized_quicksort(q, k-1);
-		par_randomized_quicksort(k, r);
+		par_randomized_quicksort(k+1, r);
 		cilk_sync;
 	}
 }
