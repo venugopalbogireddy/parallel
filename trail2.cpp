@@ -18,7 +18,7 @@ using namespace std;
 #define PI 3.14159265
 #define BLOCK 20000
 #define MAXN 500005
-#define N (1<<13)
+#define N (1<<28)
 
 typedef unsigned long long int uint64;
 typedef long long int int64;
@@ -38,8 +38,10 @@ int par_partition(int q, int r, int x) {
 	int b[n], lt[n], gt[n];
 	cilk_for(int i=0; i<n; i++) {
 		b[i] = a[q+i];
-		lt[i] = b[i]<x ? 1:0;
-		gt[i] = b[i]>x ? 1:0;
+		if(b[i]<x) lt[i]=1;
+		else lt[i]=0;
+		if(b[i]>x) gt[i]=1;
+		else gt[i]=0;
 	}
 	par_prefix_sum(lt,n);
 	par_prefix_sum(gt,n);
@@ -49,7 +51,7 @@ int par_partition(int q, int r, int x) {
 		if (b[i]<x)
 			a[q+lt[i]-1]=b[i];
 		else if (b[i] > x)
-			a[q+gt[i]] = b[i];
+			a[k+gt[i]] = b[i];
 	}
 	return k;
 }
@@ -97,12 +99,15 @@ void quickSort(int low, int high)
 
 void par_randomized_quicksort(int q, int r) {
 	int n=r-q+1;
+	cout<<"Quicksort "<<q<<" "<<r<<" "<<n<<endl;
 	if (n<=32)
 		quickSort(q, r);
 	else {
 		// select a random number
 		int x = rand() % n + q;
-		int k = par_partition(q, r, x);
+		cout<<"Random Index "<<x<<"~"<<a[x]<<endl;
+		int k = par_partition(q, r, a[x]);
+		cout<<"Random Index position "<<x<<"~"<<k<<endl;
 		cilk_spawn par_randomized_quicksort(q, k-1);
 		par_randomized_quicksort(k+1, r);
 		cilk_sync;
@@ -114,29 +119,33 @@ int main(int argc, char* argv[]) {
 	{
 		cout<<"Usage: /quicksort-par N"<<endl;
 	}
-
+        __cilkrts_set_param("nworkers",argv[2]);
 	// initializing random numbers to the array
 	int n = atoi(argv[1]);
+        cout<<"Array size "<<N<<" input "<<n<<endl;
 	for (int i = 0; i < n; ++i)
 	{
-		a[i] = rand() % 500;
+		a[i] = rand() % 5000000;
 	}
-	
-	for (int i=0; i<n; i++)
+	cout<<"Array created"<<endl;
+	/*for (int i=0; i<n; i++)
 	{
 		cout<<a[i]<<endl;
-	}
+	}*/
 	// starting the time
 	srand(time(NULL));
     time_t start = time(NULL);
     //calling function
+    //
+    cout<<"Calling Quicksort"<<endl;
     par_randomized_quicksort(0, n-1);
     time_t end = time(NULL);
     double time_taken = end-start;
 
     printf("Time Taken for Base size %d is %.6lf\n",n,time_taken);
-	for (int i=0; i<n; i++)
+	/*for (int i=0; i<n; i++)
 	{
-		cout<<a[i]<<endl;
+		cout<<a[i]<<",";
 	}
+	cout<<endl;*/
 }
