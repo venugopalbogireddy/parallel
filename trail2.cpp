@@ -1,12 +1,14 @@
 #include <bits/stdc++.h>
 #include <bitset>
 #include <string>
+#include <time.h>
 #include <cilk/cilk.h>
 #include <cilk/cilk_api.h>
 
 #define _ ios_base::sync_with_stdio(false);cin.tie(0);
 using namespace std;
 
+int thr=32;
 int* par_prefix_sum(int* b, int n) {
 	int* s=new int[n];
 	if (n==1) {
@@ -31,8 +33,8 @@ int* par_prefix_sum(int* b, int n) {
 
 int par_partition(int* a, int q, int r, int x) {
 	int n = r-q+1;
-	if (n==1){
-		return q;}
+	if (n==1)
+		return q;
 	int *b = new int[n];
 	int *lt = new int[n];
 	int *gt = new int[n];
@@ -54,12 +56,13 @@ int par_partition(int* a, int q, int r, int x) {
 			a[k+gt_p[i]] = b[i];
 	}
 	return k;
-} 
+}
+ 
 
 void par_randomized_quicksort(int* a, int q, int r) {
 	int n=r-q+1;
 	//cout<<"Quicksort "<<q<<" "<<r<<" "<<n<<endl;
-	if (n<=32)
+	if (n<=thr)
 		sort(a+q, a+r+1);
 	else {
 		// select a random number
@@ -74,11 +77,16 @@ void par_randomized_quicksort(int* a, int q, int r) {
 }
 
 int main(int argc, char* argv[]) {
-	if (argc != 2)
+	if (argc < 2)
 	{
-		cout<<"Usage: /quicksort-par input-array-size #workers"<<endl;
+		cout<<"Usage: /quicksort-par input-array-size threshold"<<endl;
 	}
-        //__cilkrts_set_param("nworkers",argv[2]);
+	if(argc>=3){
+		thr=atoi(argv[2]);
+		thr = (1<<thr);
+	}
+	//int w=atoi(argv[3]);
+        if(argc>3) __cilkrts_set_param("nworkers",argv[3]);
 	// initializing random numbers to the array
 	int n = atoi(argv[1]);
 	n = (1<<n);
@@ -93,18 +101,23 @@ int main(int argc, char* argv[]) {
 	{
 		cout<<a[i]<<endl;
 	}*/
-	int w = __cilkrts_get_nworkers();
-	cout<<"Workers = "<<w<<endl;
+	//int w = __cilkrts_get_nworkers();
+	//cout<<"Workers = "<<w<<endl;
 	// starting the time
 //	srand(time(NULL));
-    clock_t start = clock();
+	struct timespec start, end;
+	double elapsed;
+    //clock_t start = clock();
+    clock_gettime(CLOCK_MONOTONIC, &start);
     //calling function
     //
     cout<<"Calling Quicksort"<<endl;
     par_randomized_quicksort(a, 0, n-1);
-    clock_t end = clock();
-    double time_taken = end-start;
-    time_taken/=CLOCKS_PER_SEC;
+    //clock_t end = clock();
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    //double time_taken = end-start;
+    //time_taken/=CLOCKS_PER_SEC;
+    elapsed = (end.tv_sec - start.tv_sec);
    
 	//for(int i=0; i<n; i++) {
 	//	if(a[i]!=i) {
@@ -113,7 +126,7 @@ int main(int argc, char* argv[]) {
 	//	}
 	//}
 
-    printf("Time Taken for Base size %d is %.6lf\n",n,time_taken);
+    printf("Time Taken for Base size %d, thr %d is %.6lf\n",n,thr,elapsed);
 	/*for (int i=0; i<n; i++)
 	{
 		cout<<a[i]<<",";
