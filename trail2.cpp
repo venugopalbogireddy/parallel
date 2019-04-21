@@ -7,16 +7,32 @@
 #define _ ios_base::sync_with_stdio(false);cin.tie(0);
 using namespace std;
 
-void par_prefix_sum(int* b, int n) {
-	for (int i=1; i<n; i++) {
-		b[i] = b[i]+b[i-1];
+int* par_prefix_sum(int* b, int n) {
+	int* s=new int[n];
+	if (n==1) {
+		s[0]=b[0];
+	} else {
+		int *z, *y=new int[n/2];
+		cilk_for(int i=0; i<n/2; i++){
+			y[i] = b[2*i]+b[2*i+1];
+		}
+		z = par_prefix_sum(y, n/2);
+		s[0] = b[0];
+		cilk_for(int i=1; i<n; i++){
+			if(i%2 != 0){
+				s[i]=z[i/2];
+			} else {
+				s[i]=z[(i-1)/2]+b[i];
+			}
+		}
 	}
+	return s;
 }
 
 int par_partition(int* a, int q, int r, int x) {
 	int n = r-q+1;
-	if (n==1)
-		return q;
+	if (n==1){
+		return q;}
 	int *b = new int[n];
 	int *lt = new int[n];
 	int *gt = new int[n];
@@ -27,15 +43,15 @@ int par_partition(int* a, int q, int r, int x) {
 		if(b[i]>x) gt[i]=1;
 		else gt[i]=0;
 	}
-	par_prefix_sum(lt,n);
-	par_prefix_sum(gt,n);
-	int k=q+lt[n-1];
+	int *lt_p = par_prefix_sum(lt,n);
+	int *gt_p = par_prefix_sum(gt,n);
+	int k=q+lt_p[n-1];
 	a[k]=x;
 	cilk_for(int i=0; i<n; i++) {
 		if (b[i]<x)
-			a[q+lt[i]-1]=b[i];
+			a[q+lt_p[i]-1]=b[i];
 		else if (b[i] > x)
-			a[k+gt[i]] = b[i];
+			a[k+gt_p[i]] = b[i];
 	}
 	return k;
 } 
@@ -47,7 +63,7 @@ void par_randomized_quicksort(int* a, int q, int r) {
 		sort(a+q, a+r+1);
 	else {
 		// select a random number
-		int x = (rand() % n) + q;
+		int x = q+(rand() % n);
 		//cout<<"Random Index "<<x<<"~"<<a[x]<<endl;
 		int k = par_partition(a, q, r, a[x]);
 		//cout<<"Random Index position "<<x<<"~"<<k<<endl;
@@ -65,6 +81,7 @@ int main(int argc, char* argv[]) {
         //__cilkrts_set_param("nworkers",argv[2]);
 	// initializing random numbers to the array
 	int n = atoi(argv[1]);
+	n = (1<<n);
 	int *a = new int[n];
         cout<<"Array size "<<"input "<<n<<endl;
 	for (int i = 0; i < n; ++i)
@@ -76,22 +93,25 @@ int main(int argc, char* argv[]) {
 	{
 		cout<<a[i]<<endl;
 	}*/
+	int w = __cilkrts_get_nworkers();
+	cout<<"Workers = "<<w<<endl;
 	// starting the time
-	srand(time(NULL));
-    time_t start = time(NULL);
+//	srand(time(NULL));
+    clock_t start = clock();
     //calling function
     //
     cout<<"Calling Quicksort"<<endl;
     par_randomized_quicksort(a, 0, n-1);
-    time_t end = time(NULL);
+    clock_t end = clock();
     double time_taken = end-start;
-
-	for(int i=0; i<n; i++) {
-		if(a[i]!=i) {
-			cout<<"NO-SORT "<<i<<endl;
-			break;
-		}
-	}
+    time_taken/=CLOCKS_PER_SEC;
+   
+	//for(int i=0; i<n; i++) {
+	//	if(a[i]!=i) {
+	//		cout<<"NO-SORT "<<i<<endl;
+	//		break;
+	//	}
+	//}
 
     printf("Time Taken for Base size %d is %.6lf\n",n,time_taken);
 	/*for (int i=0; i<n; i++)
